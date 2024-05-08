@@ -1,47 +1,100 @@
-# %%
 import fitz
 import pandas as pd
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import List, Dict, Union
 
 logging.basicConfig(level=logging.DEBUG)
 
-filename = "data/fwil_dhi_me_results_qr.pdf"
-
-# %% [markdown]
-# still need to work on dnf's and dns's
-
-# %%
-
-filename = "data/fwil_dhi_me_results_qr.pdf"
-
-
-def calculate_sector_times_and_ranks(split_times, split_time_ranks):
+# Function to calculate sector times
+def calculate_sector_times(split_times: List[str]) -> List[str]:
     sector_times = []
-    sector_time_ranks = []
-
     previous_time = "0:00.000"
-    for i, split_time in enumerate(split_times):
-        # Handle missing split times
+    for split_time in split_times:
         if split_time == "-":
-            sector_times.append("-")
-            sector_time_ranks.append("-")
+            sector_times.append("N/A")
         else:
-            # Calculate the sector time
-            time_format = "%M:%S.%f"
-            delta = datetime.strptime(split_time, time_format) - datetime.strptime(
-                previous_time, time_format
-            )
-            sector_times.append(str(delta)[2:])  # Skip "0:" part in "0:XX.XXX" string
-            previous_time = split_time
+            try:
+                time_format = "%M:%S.%f"
+                start_time = datetime.strptime(previous_time, time_format)
+                end_time = datetime.strptime(split_time, time_format)
+                if end_time >= start_time:
+                    delta = end_time - start_time
+                    sector_times.append(str(delta)[2:])  # Skip "0:" part in "0:XX.XXX" string
+                else:
+                    logging.warning(f"End time {split_time} is earlier than start time {previous_time}. Appending 'N/A'.")
+                    sector_times.append("N/A")
+                previous_time = split_time
+            except ValueError as e:
+                logging.error(f"Error parsing time '{split_time}': {e}")
+                sector_times.append("N/A")
+    return sector_times
 
-            # Assign the rank
-            sector_time_ranks.append(split_time_ranks[i])
+# Function to calculate the time for the final sector
+def calculate_final_sector_time(final_time, split_4):
+    if final_time not in ["DNF", "DNS", "N/A", "-"] and split_4 not in ["DNF", "DNS", "N/A", "-"]:
+        final_time_dt = datetime.strptime(final_time, "%M:%S.%f")
+        split_4_dt = datetime.strptime(split_4, "%M:%S.%f")
+        delta = final_time_dt - split_4_dt
+        return str(delta)[2:]  # Skip "0:" part in "0:XX.XXX" string
+    return "N/A"
 
-    return sector_times, sector_time_ranks
+# Function to convert sector time into a timedelta for ranking
+def rank_final_sector(sector_time):
+    if sector_time not in ["N/A", "-"]:
+        minutes, seconds = map(float, sector_time.split(':'))
+        return timedelta(minutes=minutes, seconds=seconds)
+    return timedelta.max
+
+# Main function to process time and rank data
+def process_time_and_rank_data(df):
+    # Handle split times and ranks
+    for i in range(4):
+        split_col = f'split_{i+1}'
+        df[split_col] = df['split_times'].apply(lambda x: x[i] if len(x) > i else 'N/A')
+        df[f'{split_col}_rank'] = df['split_time_ranks'].apply(lambda x: x[i] if len(x) > i else 'N/A')
+
+    # Handle sector times and ranks
+    for i in range(4):
+        sector_col = f'sector_{i+1}'
+        df[sector_col] = df['sector_times'].apply(lambda x: x[i] if i < len(x) else 'N/A')
+
+        # Create a mask for valid times
+        mask = (df[sector_col] != 'N/A') & (df[sector_col] != '-')
+        valid_times = df.loc[mask, sector_col]
+
+        # Convert times to timedeltas and rank them
+        timedeltas = valid_times.apply(lambda x: timedelta(minutes=int(x.split(":")[0]), seconds=float(x.split(":")[1])))
+        df.loc[mask, f'{sector_col}_rank'] = pd.to_numeric(timedeltas, errors='coerce').rank(method='min').astype(int)
+        
+        # Set rank for invalid times explicitly
+        df.loc[~mask, f'{sector_col}_rank'] = 'N/A'
+
+    # Special handling for the final sector
+    if 'final_time' in df.columns and 'split_4' in df.columns:
+        df['sector_5'] = df.apply(
+            lambda row: calculate_final_sector_time(row['final_time'], row['split_4']), axis=1)
+        
+        # Create a mask for valid final times
+        mask_final = df['sector_5'] != 'N/A'
+        valid_final_times = df.loc[mask_final, 'sector_5']
+        
+        # Rank valid final times
+        df.loc[mask_final, 'sector_5_rank'] = pd.to_numeric(
+            valid_final_times.apply(rank_final_sector), errors='coerce'
+        ).rank(method='min').astype(int)
+
+        # Handle 'N/A' values for final sector rank
+        df.loc[~mask_final, 'sector_5_rank'] = 'N/A'
+        df['sector_5_rank'] = df['sector_5_rank'].apply(lambda x: int(x) if x != 'N/A' else x)
+
+    # Drop the original columns with lists
+    df.drop(columns=['split_times', 'split_time_ranks', 'sector_times'], inplace=True)
+    return df
 
 
-def extract_rider_info_all_pages(filename):
+
+def extract_rider_info_all_pages(filename, line_start_num):
     doc = fitz.open(filename)
     riders_info = []
 
@@ -50,7 +103,7 @@ def extract_rider_info_all_pages(filename):
         text = page.get_text("text")
         lines = text.split("\n")
 
-        line_start = 24  # Starting from line 24, this might vary depending on the document format
+        line_start = line_start_num  # Starting from line 24, this might vary depending on the document format
 
         while line_start < len(lines):
             rider_info = lines[line_start : line_start + 20]
@@ -61,9 +114,7 @@ def extract_rider_info_all_pages(filename):
             if rider_info[5].isdigit():  # No team case
                 split_times = [s.split()[0] for s in rider_info[9:13]]
                 split_time_ranks = [s.split()[-1].strip("()") for s in rider_info[9:13]]
-                sector_times, sector_time_ranks = calculate_sector_times_and_ranks(
-                    split_times, split_time_ranks
-                )
+                sector_times = calculate_sector_times(split_times)
                 rider_data = {
                     "rank": rider_info[0].split()[0].replace(".", ""),
                     "protected": (
@@ -82,7 +133,6 @@ def extract_rider_info_all_pages(filename):
                     "split_times": split_times,
                     "split_time_ranks": split_time_ranks,
                     "sector_times": sector_times,
-                    "sector_time_ranks": sector_time_ranks,
                     "final_time": rider_info[13],
                     "gap": rider_info[17],
                     "points": rider_info[18],
@@ -93,9 +143,7 @@ def extract_rider_info_all_pages(filename):
                 split_time_ranks = [
                     s.split()[-1].strip("()") for s in rider_info[10:14]
                 ]
-                sector_times, sector_time_ranks = calculate_sector_times_and_ranks(
-                    split_times, split_time_ranks
-                )
+                sector_times = calculate_sector_times(split_times)
                 rider_data = {
                     "rank": rider_info[0].split()[0].replace(".", ""),
                     "protected": (
@@ -114,7 +162,6 @@ def extract_rider_info_all_pages(filename):
                     "split_times": split_times,
                     "split_time_ranks": split_time_ranks,
                     "sector_times": sector_times,
-                    "sector_time_ranks": sector_time_ranks,
                     "final_time": rider_info[14],
                     "gap": rider_info[18],
                     "points": rider_info[19] if len(rider_info) > 19 else "N/A",
@@ -128,33 +175,22 @@ def extract_rider_info_all_pages(filename):
     return riders_info
 
 
-# Example usage
-riders_info = extract_rider_info_all_pages(filename)
-# riders_info[125:135]  # display a slice of the extracted data
+def process_results(filename: str, line_start_num: int):
+    """
+    Process the results from a given PDF file starting from a specified line number.
+    
+    Parameters:
+    filename (str): Path to the PDF file.
+    line_start_num (int): Line number to start processing from.
+    """
+    file_prefix = filename.split(".")[0]  # Get prefix for output file
+    riders_info = extract_rider_info_all_pages(filename, line_start_num)
+    df = pd.DataFrame(riders_info)
+    df = process_time_and_rank_data(df)
+    df.to_csv(f"{file_prefix}.csv", index=False)
+    print(f"The tail for filename {filename}is \n") 
+    print(df.tail(10)) # Print the last 10 rows of the processed DataFrame
 
-# Convert data to DataFrame
-df = pd.DataFrame(riders_info)
-
-# Generate split columns
-for i in range(4):
-    df[f"split_{i+1}"] = df["split_times"].apply(
-        lambda x: x[i] if len(x) > i else "N/A"
-    )
-    df[f"split_{i+1}_rank"] = df["split_time_ranks"].apply(
-        lambda x: x[i] if len(x) > i else "N/A"
-    )
-    df[f"sector_{i+1}"] = df["sector_times"].apply(
-        lambda x: x[i] if len(x) > i else "N/A"
-    )
-    df[f"sector_{i+1}_rank"] = df["sector_time_ranks"].apply(
-        lambda x: x[i] if len(x) > i else "N/A"
-    )
-
-# Drop the original columns with lists
-df.drop(
-    columns=["split_times", "split_time_ranks", "sector_times", "sector_time_ranks"],
-    inplace=True,
-)
-
-# Display the DataFrame
-df.to_csv("data/fwil_dhi_me_results_qr.csv", index=False)
+# Now use this function for both qualifications and semifinals
+process_results("data/fwil_dhi_me_results_qr.pdf", 24)  # Qualifications
+process_results("data/fwil_dhi_me_results_semi.pdf", 25)  # Semifinals

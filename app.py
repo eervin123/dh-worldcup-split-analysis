@@ -8,11 +8,14 @@ filenames = ["data/fwil_dhi_me_results_qr.csv", "data/fwil_dhi_me_results_semi.c
 # Configure the page
 st.set_page_config(page_title="Downhill Mountain Bike World Cup Results", layout="wide")
 st.title("Downhill Mountain Bike World Cup Results")
-
-# File selection
-file_choice = st.selectbox("Select a file", filenames)
-df = pd.read_csv(file_choice)
-
+# Mapping of user-friendly names to file paths
+file_mapping = {
+    "Fort William Qualifications": "data/fwil_dhi_me_results_qr.csv",
+    "Fort William Semi-Finals": "data/fwil_dhi_me_results_semi.csv"
+}
+# File selection using user-friendly names
+file_choice = st.selectbox("Select event results:", list(file_mapping.keys()))
+df = pd.read_csv(file_mapping[file_choice])
 
 # Display basic information
 simple_df = df[["rank", "name", "team", "country", "final_time", "points"]]

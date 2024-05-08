@@ -188,3 +188,20 @@ if not primary_rider_times.empty and not secondary_rider_times.empty:
         yaxis_title="Time (seconds)"
     )
     st.plotly_chart(fig_rider_vs_rider_spread, use_container_width=True)
+    
+    # Plot the cumulative time gap between the primary and secondary riders
+    fig_cumulative_gap = go.Figure()
+    cumulative_gap = primary_rider_times.iloc[0] - secondary_rider_times.iloc[0]
+    fig_cumulative_gap.add_trace(go.Scatter(
+        x=cumulative_gap.index,
+        y=cumulative_gap.dt.total_seconds().cumsum(),
+        mode='lines+markers',
+        name=f'Cumulative Gap',
+        marker_color='purple'
+    ))
+    fig_cumulative_gap.update_layout(
+        title=f"Cumulative Gap between {selected_rider} and {second_rider}",
+        xaxis_title="Time Split",
+        yaxis_title="Cumulative Time Gap (seconds)"
+    )
+    st.plotly_chart(fig_cumulative_gap, use_container_width=True)

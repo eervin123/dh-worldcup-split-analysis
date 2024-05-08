@@ -52,8 +52,9 @@ st.write(splits_df)
 # Select n and type of times to compare
 n = st.selectbox("Select a number of riders create an average for comparison", [3, 5, 10, 20, 30])
 comparison_type = st.selectbox("Select comparison type", ["Sector Times", "Split Times"])
-selected_rider = st.selectbox("Select a *primary* rider to compare", df["name"].unique())
-second_rider = st.selectbox("Select a *second* rider to compare", df["name"].unique())
+# Select riders to compare, default to first and second riders
+selected_rider = st.selectbox("Select a *primary* rider to compare", df["name"].unique(), index=0 )
+second_rider = st.selectbox("Select a *second* rider to compare", df["name"].unique(), index=1)
 # Convert split and sector times to timedelta
 for column in ["split_1", "split_2", "split_3", "split_4",
                "sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]:

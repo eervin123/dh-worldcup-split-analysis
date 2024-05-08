@@ -148,3 +148,43 @@ fig_spread.update_layout(
 )
 
 st.plotly_chart(fig_spread, use_container_width=True)
+
+# Rider vs Rider Comparison
+if not primary_rider_times.empty and not secondary_rider_times.empty:
+    st.write("## Rider vs Rider Comparison")
+    fig_rider_vs_rider = go.Figure()
+    fig_rider_vs_rider.add_trace(go.Bar(
+        x=primary_rider_times.columns,
+        y=primary_rider_times.iloc[0].dt.total_seconds(),
+        name=selected_rider,
+        marker_color='green'
+    ))
+    fig_rider_vs_rider.add_trace(go.Bar(
+        x=secondary_rider_times.columns,
+        y=secondary_rider_times.iloc[0].dt.total_seconds(),
+        name=second_rider,
+        marker_color='red'
+    ))
+    
+    fig_rider_vs_rider.update_layout(
+        title=f"{selected_rider} vs {second_rider} Comparison",
+        xaxis_title="Rider",
+        yaxis_title="Time (seconds)"
+    )
+    st.plotly_chart(fig_rider_vs_rider, use_container_width=True)
+    
+    # Rider vs Rider Comparison Spread
+    spread_rider_vs_rider = primary_rider_times.iloc[0] - secondary_rider_times.iloc[0]
+    fig_rider_vs_rider_spread = go.Figure()
+    fig_rider_vs_rider_spread.add_trace(go.Bar(
+        x=spread_rider_vs_rider.index,
+        y=spread_rider_vs_rider.dt.total_seconds(),
+        name=f'{selected_rider} - {second_rider}',
+        marker_color='purple'
+    ))
+    fig_rider_vs_rider_spread.update_layout(
+        title=f"{selected_rider} vs {second_rider} Spread",
+        xaxis_title="Time Split",
+        yaxis_title="Time (seconds)"
+    )
+    st.plotly_chart(fig_rider_vs_rider_spread, use_container_width=True)

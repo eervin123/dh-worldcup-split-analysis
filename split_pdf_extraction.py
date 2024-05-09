@@ -54,44 +54,35 @@ def process_time_and_rank_data(df):
         df[split_col] = df['split_times'].apply(lambda x: x[i] if len(x) > i else 'N/A')
         df[f'{split_col}_rank'] = df['split_time_ranks'].apply(lambda x: x[i] if len(x) > i else 'N/A')
 
-    # Handle sector times and ranks
-    for i in range(4):
+    # Handle sector times and ranks, allowing rankings for completed sectors even if DNF later
+    for i in range(4):  # Assuming there are 4 sectors before the final one
         sector_col = f'sector_{i+1}'
         df[sector_col] = df['sector_times'].apply(lambda x: x[i] if i < len(x) else 'N/A')
 
-        # Create a mask for valid times
+        # Adjust the mask to only exclude times for this sector specifically
         mask = (df[sector_col] != 'N/A') & (df[sector_col] != '-')
         valid_times = df.loc[mask, sector_col]
 
         # Convert times to timedeltas and rank them
         timedeltas = valid_times.apply(lambda x: timedelta(minutes=int(x.split(":")[0]), seconds=float(x.split(":")[1])))
-        df.loc[mask, f'{sector_col}_rank'] = pd.to_numeric(timedeltas, errors='coerce').rank(method='min').astype(int)
-        
-        # Set rank for invalid times explicitly
-        df.loc[~mask, f'{sector_col}_rank'] = 'N/A'
+        df.loc[mask, f'{sector_col}_rank'] = timedeltas.rank(method='min').astype(int)
 
     # Special handling for the final sector
-    if 'final_time' in df.columns and 'split_4' in df.columns:
-        df['sector_5'] = df.apply(
-            lambda row: calculate_final_sector_time(row['final_time'], row['split_4']), axis=1)
-        
-        # Create a mask for valid final times
-        mask_final = df['sector_5'] != 'N/A'
-        valid_final_times = df.loc[mask_final, 'sector_5']
-        
-        # Rank valid final times
-        df.loc[mask_final, 'sector_5_rank'] = pd.to_numeric(
-            valid_final_times.apply(rank_final_sector), errors='coerce'
-        ).rank(method='min').astype(int)
+    df['sector_5'] = df.apply(
+        lambda row: calculate_final_sector_time(row['final_time'], row['split_4']) if row['final_time'] not in ["DNF", "DNS"] else "N/A", axis=1)
+    
+    # Create a mask for valid final times, excluding 'DNF' from final time
+    mask_final = df['sector_5'] != 'N/A'
+    valid_final_times = df.loc[mask_final, 'sector_5']
+    df.loc[mask_final, 'sector_5_rank'] = valid_final_times.apply(rank_final_sector).rank(method='min').astype(int)
 
-        # Handle 'N/A' values for final sector rank
-        df.loc[~mask_final, 'sector_5_rank'] = 'N/A'
-        df['sector_5_rank'] = df['sector_5_rank'].apply(lambda x: int(x) if x != 'N/A' else x)
+    # Handle 'N/A' values for final sector rank
+    df.loc[~mask_final, 'sector_5_rank'] = 'N/A'
+    df['sector_5_rank'] = df['sector_5_rank'].apply(lambda x: int(x) if x != 'N/A' else x)
 
     # Drop the original columns with lists
     df.drop(columns=['split_times', 'split_time_ranks', 'sector_times'], inplace=True)
     return df
-
 
 
 def extract_rider_info_all_pages(filename, line_start_num):
@@ -188,9 +179,10 @@ def process_results(filename: str, line_start_num: int):
     df = pd.DataFrame(riders_info)
     df = process_time_and_rank_data(df)
     df.to_csv(f"{file_prefix}.csv", index=False)
-    print(f"The tail for filename {filename}is \n") 
+    print(f"The tail for filename {filename} is \n") 
     print(df.tail(10)) # Print the last 10 rows of the processed DataFrame
 
 # Now use this function for both qualifications and semifinals
 process_results("data/fwil_dhi_me_results_qr.pdf", 24)  # Qualifications
 process_results("data/fwil_dhi_me_results_semi.pdf", 25)  # Semifinals
+process_results("data/fwil_dhi_me_results_f.pdf", 24)  # Finals

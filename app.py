@@ -1,9 +1,11 @@
+
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objs as go
 
 # Filenames to choose from
-filenames = ["data/fwil_dhi_me_results_qr.csv", "data/fwil_dhi_me_results_semi.csv"]
+filenames = ["data/fwil_dhi_me_results_qr.csv", "data/fwil_dhi_me_results_semi.csv", "data/fwil_dhi_me_results_f.csv"]
 
 # Configure the page
 st.set_page_config(page_title="Downhill Mountain Bike World Cup Results", layout="wide")
@@ -11,7 +13,8 @@ st.title("Downhill Mountain Bike World Cup Results")
 # Mapping of user-friendly names to file paths
 file_mapping = {
     "Fort William Qualifications": "data/fwil_dhi_me_results_qr.csv",
-    "Fort William Semi-Finals": "data/fwil_dhi_me_results_semi.csv"
+    "Fort William Semi-Finals": "data/fwil_dhi_me_results_semi.csv",
+    "Fort William Finals": "data/fwil_dhi_me_results_f.csv",
 }
 # File selection using user-friendly names
 file_choice = st.selectbox("Select event results:", list(file_mapping.keys()))
@@ -78,12 +81,17 @@ for column in [
     "sector_5",
 ]:
     df[column] = pd.to_timedelta("00:" + df[column], errors="coerce")
-
+# Check if there are enough riders to compare to the 30th place
+if len(df) < 30:
+    index_location = len(df) - 1
+else:
+    index_location = 29
 # Create the plots
 if comparison_type == "Split Times":
     st.write("## Split Time Comparison")
     top_times_avg = df[["split_1", "split_2", "split_3", "split_4"]].head(n).mean()
-    thirtieth_times = df[["split_1", "split_2", "split_3", "split_4"]].iloc[29]
+    
+    thirtieth_times = df[["split_1", "split_2", "split_3", "split_4"]].iloc[index_location]
     primary_rider_times = df[["split_1", "split_2", "split_3", "split_4"]].loc[
         df["name"].str.contains(selected_rider, case=False, na=False)
     ]
@@ -95,9 +103,10 @@ else:
     top_times_avg = (
         df[["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]].head(n).mean()
     )
+    # TODO: Need to add error handling if fewer than 30 riders are present
     thirtieth_times = df[
         ["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]
-    ].iloc[29]
+    ].iloc[index_location]
     primary_rider_times = df[
         ["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]
     ].loc[df["name"].str.contains(selected_rider, case=False, na=False)]
@@ -210,7 +219,7 @@ if not primary_rider_times.empty and not secondary_rider_times.empty:
 # ================================================================================================
 # Average of top riders vs 30th place and selected riders
 st.write(f"## {comparison_type}")
-st.write(f"#### Avg of the Top {n} vs 30th Place vs Selected Riders")
+st.write(f"#### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders")
 fig = go.Figure()
 fig.add_trace(
     go.Bar(
@@ -224,7 +233,7 @@ fig.add_trace(
     go.Bar(
         x=thirtieth_times.index,
         y=thirtieth_times.dt.total_seconds(),
-        name="30th Place",
+        name=f"{index_location+1}th Place",
         marker_color="orange",
     )
 )
@@ -261,7 +270,7 @@ fig_spread.add_trace(
     go.Bar(
         x=spread_top_thirtieth.index,
         y=spread_top_thirtieth.dt.total_seconds(),
-        name=f"30th Place",
+        name=f"{index_location+1}th Place",
         marker_color="orange",
     )
 )

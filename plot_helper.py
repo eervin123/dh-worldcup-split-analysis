@@ -4,7 +4,7 @@ import streamlit as st
 def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type, index_location):
     # Create the plots
     if comparison_type == "Split Times":
-        st.write("## Split Time Comparison")
+        st.write("#### Split Time Comparison")
         top_times_avg = df_best_runs[["Orig_Split_1_Time", "Orig_Split_2_Time", "Orig_Split_3_Time", "Orig_Split_4_Time", "Orig_Split_5_Time"]].head(n).mean()
 
         thirtieth_times = df_best_runs[["Orig_Split_1_Time", "Orig_Split_2_Time", "Orig_Split_3_Time", "Orig_Split_4_Time", "Orig_Split_5_Time"]].iloc[index_location]
@@ -15,7 +15,7 @@ def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type,
             df_best_runs["Name"].str.contains(second_rider, case=False, na=False)
         ]
     else:
-        st.write("## Sector Time Comparison")
+        st.write("#### Sector Time Comparison")
         top_times_avg = df_best_runs[
             ["Sector_1_Time", "Sector_2_Time", "Sector_3_Time", "Sector_4_Time", "Sector_5_Time"]
         ].head(n).mean()
@@ -38,7 +38,7 @@ def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type,
     # ======================Rider vs Rider Comparison===============================================
     # Rider vs Rider Comparison with Incremental and Cumulative Spread on Secondary Axis
     if not primary_rider_times.empty and not secondary_rider_times.empty:
-        st.write("## Rider vs Rider Detailed Comparison")
+        st.write("##### Rider vs Rider Detailed Comparison")
         st.write(
             """The following plot shows the comparison between two selected 
             riders with incremental and cumulative spread on the secondary 
@@ -131,8 +131,8 @@ def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type,
 
     # ================================================================================================
     # Average of top riders vs 30th place and selected riders
-    st.write(f"## {comparison_type}")
-    st.write(f"#### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders")
+    st.write(f"#### {comparison_type}")
+    st.write(f"##### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders")
     fig = go.Figure()
     fig.add_trace(
         go.Bar(

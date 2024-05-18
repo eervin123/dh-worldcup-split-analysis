@@ -83,7 +83,8 @@ def show_time_trials():
         'Sector_2_Time': 'min',
         'Sector_3_Time': 'min',
         'Sector_4_Time': 'min',
-        'Sector_5_Time': 'min'
+        'Sector_5_Time': 'min',
+        'Speed': 'max'  # Get the maximum speed for the hypothetical run
     }).reset_index()
 
     # Create a new dataframe for the hypothetical best runs
@@ -98,6 +99,7 @@ def show_time_trials():
             'Sector_3_Time': row['Sector_3_Time'],
             'Sector_4_Time': row['Sector_4_Time'],
             'Sector_5_Time': row['Sector_5_Time'],
+            'Speed': row['Speed']
         }
         best_run['Orig_Split_1_Time'] = best_run['Sector_1_Time']
         best_run['Orig_Split_2_Time'] = best_run['Sector_1_Time'] + best_run['Sector_2_Time']
@@ -120,6 +122,9 @@ def show_time_trials():
     for i in range(1, 5):
         df_hypothetical_best[f'Cumulative_from_Sector_{i}_Rank'] = df_hypothetical_best[f'Cumulative_from_Sector_{i}_Time'].rank(method='min')
 
+    # Calculate Speed_Rank for hypothetical runs
+    df_hypothetical_best['Speed_Rank'] = df_hypothetical_best['Speed'].rank(method='min', ascending=False)
+
     # Add missing columns with NaNs to match preferred_columns
     missing_cols = set(preferred_columns) - set(df_hypothetical_best.columns)
     for col in missing_cols:
@@ -132,14 +137,15 @@ def show_time_trials():
     df_hypothetical_best = df_hypothetical_best.sort_values(by='Orig_Split_5_Time')
 
     # Reorder columns to place "Perfect Run Rank" next to "Name"
-    columns_order = ['Number', 'Name', 'Perfect_Run_Rank'] + [col for col in preferred_columns if col not in ['Number', 'Name']]
+    columns_order = ['Number', 'Name', 'Perfect_Run_Rank', 'Speed', 'Speed_Rank'] + \
+                    [col for col in preferred_columns if col not in ['Number', 'Name', 'Speed', 'Speed_Rank', 'Perfect_Run_Rank']]
     df_hypothetical_best = df_hypothetical_best[columns_order]
 
     # Display a clear title to indicate the start of hypothetical data
-    st.title("Hypothetical Best Runs Analysis")
-
+    st.title("Hypothetical Perfect Runs Analysis")
+    st.write("The following analysis is based on the best sector times for each rider out of their three runs to compile a single best hypothetical run.")
     # Display the hypothetical best runs for debugging
-    st.write("Hypothetical Best Runs DataFrame")
+    st.write("Hypothetical Perfect Runs DataFrame")
     st.write(df_hypothetical_best.rename(columns=clean_column_name))
 
     # Convert split and sector times to timedelta for plotting

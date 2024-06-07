@@ -5,7 +5,7 @@ from columns import preferred_columns, timedelta_columns
 
 def show_time_trials():
     # Filename for time trials
-    filename = "data/biel_dhi_me_results_tt.csv"
+    filename = "data/leog_dhi_me_results_tt.csv"
 
     st.title("Downhill Mountain Bike World Cup Time Trials")
 

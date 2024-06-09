@@ -4,14 +4,17 @@ import plotly.graph_objs as go
 
 def show_event_results():
     # Filenames to choose from
-    filenames = ["data/fwil_dhi_me_results_qr.csv", "data/fwil_dhi_me_results_semi.csv", "data/fwil_dhi_me_results_f.csv"]
+    filenames = ["data/fwil_dhi_me_results_qr.csv", "data/fwil_dhi_me_results_semi.csv", "data/fwil_dhi_me_results_f.csv", "data/leog_dhi_me_results_qr.csv", "data/leog_dhi_me_results_semi.csv"]
 
     # Mapping of user-friendly names to file paths
     file_mapping = {
         "Fort William Qualifications": "data/fwil_dhi_me_results_qr.csv",
         "Fort William Semi-Finals": "data/fwil_dhi_me_results_semi.csv",
         "Fort William Finals": "data/fwil_dhi_me_results_f.csv",
+        "Leogang Qualifications": "data/leog_dhi_me_results_qr.csv",
+        "Leogang Semi-Finals": "data/leog_dhi_me_results_semi.csv",
     }
+    
 
     st.title("Downhill Mountain Bike World Cup Event Results")
 

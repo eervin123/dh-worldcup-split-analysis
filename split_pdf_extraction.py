@@ -1,188 +1,315 @@
-import fitz
+import streamlit as st
 import pandas as pd
-import logging
-from datetime import datetime, timedelta
-from typing import List, Dict, Union
+import plotly.graph_objs as go
 
-logging.basicConfig(level=logging.DEBUG)
+def show_event_results():
+    # Filenames to choose from
+    filenames = ["data/fwil_dhi_me_results_qr.csv", "data/fwil_dhi_me_results_semi.csv", "data/fwil_dhi_me_results_f.csv", "data/leog_dhi_me_results_qr.csv", "data/leog_dhi_me_results_semi.csv"]
 
-# Function to calculate sector times
-def calculate_sector_times(split_times: List[str]) -> List[str]:
-    sector_times = []
-    previous_time = "0:00.000"
-    for split_time in split_times:
-        if split_time == "-":
-            sector_times.append("N/A")
-        else:
-            try:
-                time_format = "%M:%S.%f"
-                start_time = datetime.strptime(previous_time, time_format)
-                end_time = datetime.strptime(split_time, time_format)
-                if end_time >= start_time:
-                    delta = end_time - start_time
-                    sector_times.append(str(delta)[2:])  # Skip "0:" part in "0:XX.XXX" string
-                else:
-                    logging.warning(f"End time {split_time} is earlier than start time {previous_time}. Appending 'N/A'.")
-                    sector_times.append("N/A")
-                previous_time = split_time
-            except ValueError as e:
-                logging.error(f"Error parsing time '{split_time}': {e}")
-                sector_times.append("N/A")
-    return sector_times
-
-# Function to calculate the time for the final sector
-def calculate_final_sector_time(final_time, split_4):
-    if final_time not in ["DNF", "DNS", "N/A", "-"] and split_4 not in ["DNF", "DNS", "N/A", "-"]:
-        final_time_dt = datetime.strptime(final_time, "%M:%S.%f")
-        split_4_dt = datetime.strptime(split_4, "%M:%S.%f")
-        delta = final_time_dt - split_4_dt
-        return str(delta)[2:]  # Skip "0:" part in "0:XX.XXX" string
-    return "N/A"
-
-# Function to convert sector time into a timedelta for ranking
-def rank_final_sector(sector_time):
-    if sector_time not in ["N/A", "-"]:
-        minutes, seconds = map(float, sector_time.split(':'))
-        return timedelta(minutes=minutes, seconds=seconds)
-    return timedelta.max
-
-# Main function to process time and rank data
-def process_time_and_rank_data(df):
-    # Handle split times and ranks
-    for i in range(4):
-        split_col = f'split_{i+1}'
-        df[split_col] = df['split_times'].apply(lambda x: x[i] if len(x) > i else 'N/A')
-        df[f'{split_col}_rank'] = df['split_time_ranks'].apply(lambda x: x[i] if len(x) > i else 'N/A')
-
-    # Handle sector times and ranks, allowing rankings for completed sectors even if DNF later
-    for i in range(4):  # Assuming there are 4 sectors before the final one
-        sector_col = f'sector_{i+1}'
-        df[sector_col] = df['sector_times'].apply(lambda x: x[i] if i < len(x) else 'N/A')
-
-        # Adjust the mask to only exclude times for this sector specifically
-        mask = (df[sector_col] != 'N/A') & (df[sector_col] != '-')
-        valid_times = df.loc[mask, sector_col]
-
-        # Convert times to timedeltas and rank them
-        timedeltas = valid_times.apply(lambda x: timedelta(minutes=int(x.split(":")[0]), seconds=float(x.split(":")[1])))
-        df.loc[mask, f'{sector_col}_rank'] = timedeltas.rank(method='min').astype(int)
-
-    # Special handling for the final sector
-    df['sector_5'] = df.apply(
-        lambda row: calculate_final_sector_time(row['final_time'], row['split_4']) if row['final_time'] not in ["DNF", "DNS"] else "N/A", axis=1)
+    # Mapping of user-friendly names to file paths
+    file_mapping = {
+        "Fort William Qualifications": "data/fwil_dhi_me_results_qr.csv",
+        "Fort William Semi-Finals": "data/fwil_dhi_me_results_semi.csv",
+        "Fort William Finals": "data/fwil_dhi_me_results_f.csv",
+        "Leogang Qualifications": "data/leog_dhi_me_results_qr.csv",
+        "Leogang Semi-Finals": "data/leog_dhi_me_results_semi.csv",
+    }
     
-    # Create a mask for valid final times, excluding 'DNF' from final time
-    mask_final = df['sector_5'] != 'N/A'
-    valid_final_times = df.loc[mask_final, 'sector_5']
-    df.loc[mask_final, 'sector_5_rank'] = valid_final_times.apply(rank_final_sector).rank(method='min').astype(int)
 
-    # Handle 'N/A' values for final sector rank
-    df.loc[~mask_final, 'sector_5_rank'] = 'N/A'
-    df['sector_5_rank'] = df['sector_5_rank'].apply(lambda x: int(x) if x != 'N/A' else x)
+    st.title("Downhill Mountain Bike World Cup Event Results")
 
-    # Drop the original columns with lists
-    df.drop(columns=['split_times', 'split_time_ranks', 'sector_times'], inplace=True)
-    return df
+    # File selection using user-friendly names
+    file_choice = st.selectbox("Select event results:", list(file_mapping.keys()))
+    df = pd.read_csv(file_mapping[file_choice])
 
+    # Function to clean column names for display
+    def clean_column_name(col_name):
+        return col_name.replace('_', ' ').replace(' Time', '')
 
-def extract_rider_info_all_pages(filename, line_start_num):
-    doc = fitz.open(filename)
-    riders_info = []
+    # Display basic information
+    simple_df = df[["rank", "name", "team", "country", "final_time", "points"]]
+    simple_df.set_index("rank", inplace=True)
+    st.write(simple_df.rename(columns=clean_column_name))
 
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        text = page.get_text("text")
-        lines = text.split("\n")
-
-        line_start = line_start_num  # Starting from line 24, this might vary depending on the document format
-
-        while line_start < len(lines):
-            rider_info = lines[line_start : line_start + 20]
-
-            if len(rider_info) < 19:
-                break
-
-            if rider_info[5].isdigit():  # No team case
-                split_times = [s.split()[0] for s in rider_info[9:13]]
-                split_time_ranks = [s.split()[-1].strip("()") for s in rider_info[9:13]]
-                sector_times = calculate_sector_times(split_times)
-                rider_data = {
-                    "rank": rider_info[0].split()[0].replace(".", ""),
-                    "protected": (
-                        rider_info[0].split()[1]
-                        if len(rider_info[0].split()) > 1
-                        else ""
-                    ),
-                    "rider_number": rider_info[1].split()[0],
-                    "name": " ".join(rider_info[1].split()[1:]),
-                    "team": "N/A",
-                    "uci_id": rider_info[5],
-                    "country": rider_info[6],
-                    "birth_year": rider_info[7],
-                    "speed_trap": rider_info[8].split()[0],
-                    "speed_trap_rank": rider_info[8].split()[-1].strip("()"),
-                    "split_times": split_times,
-                    "split_time_ranks": split_time_ranks,
-                    "sector_times": sector_times,
-                    "final_time": rider_info[13],
-                    "gap": rider_info[17],
-                    "points": rider_info[18],
-                }
-                next_offset = 19  # Proceed 19 elements forward for the next rider
-            else:  # With team case
-                split_times = [s.split()[0] for s in rider_info[10:14]]
-                split_time_ranks = [
-                    s.split()[-1].strip("()") for s in rider_info[10:14]
-                ]
-                sector_times = calculate_sector_times(split_times)
-                rider_data = {
-                    "rank": rider_info[0].split()[0].replace(".", ""),
-                    "protected": (
-                        rider_info[0].split()[1]
-                        if len(rider_info[0].split()) > 1
-                        else ""
-                    ),
-                    "rider_number": rider_info[1].split()[0],
-                    "name": " ".join(rider_info[1].split()[1:]),
-                    "team": rider_info[5],
-                    "uci_id": rider_info[6],
-                    "country": rider_info[7],
-                    "birth_year": rider_info[8],
-                    "speed_trap": rider_info[9].split()[0],
-                    "speed_trap_rank": rider_info[9].split()[-1].strip("()"),
-                    "split_times": split_times,
-                    "split_time_ranks": split_time_ranks,
-                    "sector_times": sector_times,
-                    "final_time": rider_info[14],
-                    "gap": rider_info[18],
-                    "points": rider_info[19] if len(rider_info) > 19 else "N/A",
-                }
-                next_offset = 20  # Proceed 20 elements forward for the next rider
-            if rider_data["final_time"] == "DNF" or rider_data["final_time"] == "DNS":
-                break
-            riders_info.append(rider_data)
-            line_start += next_offset
-
-    return riders_info
-
-
-def process_results(filename: str, line_start_num: int):
-    """
-    Process the results from a given PDF file starting from a specified line number.
+    # Display split times and sectors
+    st.write("Splits and Sector Ranks")
+    splits_df = df[
+        [
+            "rank",
+            "name",
+            "final_time",
+            "split_1",
+            "split_2",
+            "split_3",
+            "split_4",
+            "split_1_rank",
+            "split_2_rank",
+            "split_3_rank",
+            "split_4_rank",
+            "sector_1",
+            "sector_2",
+            "sector_3",
+            "sector_4",
+            "sector_5",
+            "sector_1_rank",
+            "sector_2_rank",
+            "sector_3_rank",
+            "sector_4_rank",
+            "sector_5_rank",
+        ]
+    ].set_index("rank")
+    st.write(splits_df.rename(columns=clean_column_name))
     
-    Parameters:
-    filename (str): Path to the PDF file.
-    line_start_num (int): Line number to start processing from.
-    """
-    file_prefix = filename.split(".")[0]  # Get prefix for output file
-    riders_info = extract_rider_info_all_pages(filename, line_start_num)
-    df = pd.DataFrame(riders_info)
-    df = process_time_and_rank_data(df)
-    df.to_csv(f"{file_prefix}.csv", index=False)
-    print(f"The tail for filename {filename} is \n") 
-    print(df.tail(10)) # Print the last 10 rows of the processed DataFrame
+    # Using columns to organize dropdowns
+    col1, col2 = st.columns(2)
+    with col1:
+        n = st.selectbox(
+            "Select a number of riders to create an average for comparison", [3, 5, 10, 20, 30]
+        )
+        selected_rider = st.selectbox(
+            "Select a *primary* rider to compare", df["name"].unique(), index=0
+        )
 
-# Now use this function for both qualifications and semifinals
-process_results("data/fwil_dhi_me_results_qr.pdf", 24)  # Qualifications
-process_results("data/fwil_dhi_me_results_semi.pdf", 25)  # Semifinals
-process_results("data/fwil_dhi_me_results_f.pdf", 24)  # Finals
+    with col2:
+        comparison_type = st.selectbox(
+            "Select comparison type", ["Sector Times", "Split Times"]
+        )
+        second_rider = st.selectbox(
+            "Select a *second* rider to compare", df["name"].unique(), index=1
+        )
+
+    # ======================Data Processing==========================================================
+    # Convert split and sector times to timedelta
+    for column in [
+        "split_1",
+        "split_2",
+        "split_3",
+        "split_4",
+        "sector_1",
+        "sector_2",
+        "sector_3",
+        "sector_4",
+        "sector_5",
+    ]:
+        df[column] = pd.to_timedelta("00:" + df[column], errors="coerce")
+
+    # Check if there are enough riders to compare to the 30th place
+    if len(df) < 30:
+        index_location = len(df) - 1
+    else:
+        index_location = 29
+
+    # Create the plots
+    if comparison_type == "Split Times":
+        st.write("## Split Time Comparison")
+        top_times_avg = df[["split_1", "split_2", "split_3", "split_4"]].head(n).mean()
+        
+        thirtieth_times = df[["split_1", "split_2", "split_3", "split_4"]].iloc[index_location]
+        primary_rider_times = df[["split_1", "split_2", "split_3", "split_4"]].loc[
+            df["name"].str.contains(selected_rider, case=False, na=False)
+        ]
+        secondary_rider_times = df[["split_1", "split_2", "split_3", "split_4"]].loc[
+            df["name"].str.contains(second_rider, case=False, na=False)
+        ]
+    else:
+        st.write("## Sector Time Comparison")
+        top_times_avg = (
+            df[["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]].head(n).mean()
+        )
+        thirtieth_times = df[
+            ["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]
+        ].iloc[index_location]
+        primary_rider_times = df[
+            ["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]
+        ].loc[df["name"].str.contains(selected_rider, case=False, na=False)]
+        secondary_rider_times = df[
+            ["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]
+        ].loc[df["name"].str.contains(second_rider, case=False, na=False)]
+
+    # Calculate spread between top_times_avg and thirtieth_times and the selected rider times
+    spread_top_thirtieth = top_times_avg - thirtieth_times
+    if not primary_rider_times.empty:
+        spread_primary_rider_vs_top_rider_avg = top_times_avg - primary_rider_times.iloc[0]
+        spread_secondary_rider_vs_top_rider_avg = (
+            top_times_avg - secondary_rider_times.iloc[0]
+        )
+
+    # ======================Rider vs Rider Comparison===============================================
+    # Rider vs Rider Comparison with Incremental and Cumulative Spread on Secondary Axis
+    if not primary_rider_times.empty and not secondary_rider_times.empty:
+        st.write("## Rider vs Rider Detailed Comparison")
+        st.write(
+            """The following plot shows the comparison between two selected 
+            riders with incremental and cumulative spread on the secondary 
+            axis. The dotted line represents the zero spread line. If the spread is 
+            below the dotted line Rider 1 is catching Rider 2 and vice versa."""
+        )
+        fig_rider_vs_rider = go.Figure()
+
+        # Primary Rider times
+        fig_rider_vs_rider.add_trace(
+            go.Bar(
+                x=primary_rider_times.columns,
+                y=primary_rider_times.iloc[0].dt.total_seconds(),
+                name=selected_rider,
+                marker_color="green",
+            )
+        )
+
+        # Secondary Rider times
+        fig_rider_vs_rider.add_trace(
+            go.Bar(
+                x=secondary_rider_times.columns,
+                y=secondary_rider_times.iloc[0].dt.total_seconds(),
+                name=second_rider,
+                marker_color="red",
+            )
+        )
+
+        # Calculate the incremental spread for each split
+        spread_rider_vs_rider = primary_rider_times.iloc[0] - secondary_rider_times.iloc[0]
+
+        # Adding incremental spread as a line plot on secondary y-axis
+        fig_rider_vs_rider.add_trace(
+            go.Scatter(
+                x=spread_rider_vs_rider.index,
+                y=spread_rider_vs_rider.dt.total_seconds(),
+                name="Incremental Spread",
+                mode="lines+markers",
+                marker=dict(color="orange", size=10),
+                yaxis="y2",
+            )
+        )
+
+        # Calculate cumulative spread
+        cumulative_spread = spread_rider_vs_rider.dt.total_seconds().cumsum()
+
+        # Adding cumulative spread as a line plot on secondary y-axis
+        fig_rider_vs_rider.add_trace(
+            go.Scatter(
+                x=cumulative_spread.index,
+                y=cumulative_spread,
+                name="Cumulative Spread",
+                mode="lines+markers",
+                marker=dict(color="purple", size=10),
+                yaxis="y2",
+            )
+        )
+
+        # Set up the layout for dual axes
+        fig_rider_vs_rider.update_layout(
+            title=f"{selected_rider} vs {second_rider} Comparison and Spreads",
+            xaxis_title="Time Split",
+            yaxis=dict(
+                title="Time (seconds)",
+                titlefont=dict(color="blue"),
+                tickfont=dict(color="blue"),
+            ),
+            yaxis2=dict(
+                title="Spread (seconds)",
+                overlaying="y",
+                side="right",
+                titlefont=dict(color="purple"),
+                tickfont=dict(color="purple"),
+            ),
+            shapes=[  # Add shapes
+                dict(
+                    type="line",
+                    xref="paper",
+                    x0=0,
+                    x1=1,
+                    yref="y2",
+                    y0=0,
+                    y1=0,
+                    line=dict(color="gray", width=3, dash="dash"),
+                )
+            ],
+        )
+
+        st.plotly_chart(fig_rider_vs_rider, use_container_width=True)
+
+    # ================================================================================================
+    # Average of top riders vs 30th place and selected riders
+    st.write(f"## {comparison_type}")
+    st.write(f"#### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders")
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=top_times_avg.index,
+            y=top_times_avg.dt.total_seconds(),
+            name=f"Top {n} Avg",
+            marker_color="blue",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=thirtieth_times.index,
+            y=thirtieth_times.dt.total_seconds(),
+            name=f"{index_location+1}th Place",
+            marker_color="orange",
+        )
+    )
+    if not primary_rider_times.empty:
+        fig.add_trace(
+            go.Bar(
+                x=primary_rider_times.columns,
+                y=primary_rider_times.iloc[0].dt.total_seconds(),
+                name=selected_rider,
+                marker_color="green",
+            )
+        )
+    if not secondary_rider_times.empty:
+        fig.add_trace(
+            go.Bar(
+                x=secondary_rider_times.columns,
+                y=secondary_rider_times.iloc[0].dt.total_seconds(),
+                name=second_rider,
+                marker_color="red",
+            )
+        )
+    fig.update_layout(
+        title=f"Average {comparison_type} Comparison",
+        xaxis_title="Time Split",
+        yaxis_title="Time (seconds)",
+        barmode="group",
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Plot the spreads
+    fig_spread = go.Figure()
+    fig_spread.add_trace(
+        go.Bar(
+            x=spread_top_thirtieth.index,
+            y=spread_top_thirtieth.dt.total_seconds(),
+            name=f"{index_location+1}th Place",
+            marker_color="orange",
+        )
+    )
+    if not primary_rider_times.empty:
+        fig_spread.add_trace(
+            go.Bar(
+                x=spread_primary_rider_vs_top_rider_avg.index,
+                y=spread_primary_rider_vs_top_rider_avg.dt.total_seconds(),
+                name=selected_rider,
+                marker_color="green",
+            )
+        )
+    if not secondary_rider_times.empty:
+        fig_spread.add_trace(
+            go.Bar(
+                x=spread_secondary_rider_vs_top_rider_avg.index,
+                y=spread_secondary_rider_vs_top_rider_avg.dt.total_seconds(),
+                name=second_rider,
+                marker_color="red",
+            )
+        )
+
+    fig_spread.update_layout(
+        title=f"Spread Comparison (Gap to Top {n} Avg)",
+        xaxis_title="Time Split",
+        yaxis_title="Time (seconds)",
+        barmode="group",
+    )
+
+    st.plotly_chart(fig_spread, use_container_width=True)

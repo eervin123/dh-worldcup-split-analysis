@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objs as go
 
-
 def show_event_results():
     # Filenames to choose from
     filenames = [
@@ -17,6 +16,7 @@ def show_event_results():
         "data/leog_dhi_me_results_f.csv",
         "data/vdso_dhi_me_results_qr.csv",
         "data/vdso_dhi_me_results_semi.csv",
+        "data/vdso_dhi_me_results_f.csv"
     ]
 
     # Mapping of user-friendly names to file paths
@@ -32,12 +32,13 @@ def show_event_results():
         "Leogang Finals": "data/leog_dhi_me_results_f.csv",
         "Val di Sole Qualifications": "data/vdso_dhi_me_results_qr.csv",
         "Val di Sole Semi-Finals": "data/vdso_dhi_me_results_semi.csv",
+        "Val di Sole Finals": "data/vdso_dhi_me_results_f.csv",
     }
 
     st.title("Downhill Mountain Bike World Cup Event Results")
 
     # File selection using user-friendly names
-    file_choice = st.selectbox("Select event results:", list(file_mapping.keys()))
+    file_choice = st.selectbox("Select event results:", list(file_mapping.keys()), key='event_results_select')
     df = pd.read_csv(file_mapping[file_choice])
 
     # Function to clean column names for display
@@ -84,17 +85,18 @@ def show_event_results():
         n = st.selectbox(
             "Select a number of riders to create an average for comparison",
             [3, 5, 10, 20, 30],
+            key='number_of_riders_select'
         )
         selected_rider = st.selectbox(
-            "Select a *primary* rider to compare", df["name"].unique(), index=0
+            "Select a *primary* rider to compare", df["name"].unique(), index=0, key='primary_rider_select'
         )
 
     with col2:
         comparison_type = st.selectbox(
-            "Select comparison type", ["Sector Times", "Split Times"]
+            "Select comparison type", ["Sector Times", "Split Times"], key='comparison_type_select'
         )
         second_rider = st.selectbox(
-            "Select a *second* rider to compare", df["name"].unique(), index=1
+            "Select a *second* rider to compare", df["name"].unique(), index=1, key='second_rider_select'
         )
 
     # ======================Data Processing==========================================================

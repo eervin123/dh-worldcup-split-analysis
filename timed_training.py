@@ -3,19 +3,20 @@ import pandas as pd
 from plot_helper import plot_results
 from columns import preferred_columns, timedelta_columns
 
-def show_time_trials():
+def show_timed_training():
     # Filenames to choose from
-    filenames = ["data/leog_dhi_me_results_tt.csv", "data/biel_dhi_me_results_tt.csv", "data/vdso_dhi_me_results_tt.csv"]
+    filenames = ["data/fwil_dhi_me_results_tt.csv", "data/leog_dhi_me_results_tt.csv", "data/biel_dhi_me_results_tt.csv", "data/vdso_dhi_me_results_tt.csv"]
 
     # Mapping of user-friendly names to file paths
     file_mapping = {
+        "Fort William Time Training": "data/fwil_dhi_me_results_tt.csv",
         "Leogang Time Training": "data/leog_dhi_me_results_tt.csv",
         "Biel Time Training": "data/biel_dhi_me_results_tt.csv",
         "Val di Sole Time Training": "data/vdso_dhi_me_results_tt.csv",
     }
-    
+
     st.title("Downhill Mountain Bike World Cup Time Training Results")
-    file_choice = st.selectbox("Select event results:", list(file_mapping.keys()))
+    file_choice = st.selectbox("Select event results:", list(file_mapping.keys()), key='timed_training_file_select')
     df = pd.read_csv(file_mapping[file_choice])
 
     def clean_column_name(col_name):
@@ -54,12 +55,12 @@ def show_time_trials():
 
     col1, col2 = st.columns(2)
     with col1:
-        n = st.selectbox("Select a number of riders to create an average for comparison", [3, 5, 10, 20, 30])
-        selected_rider = st.selectbox("Select a *primary* rider to compare", df["Name"].unique(), index=0)
+        n = st.selectbox("Select a number of riders to create an average for comparison", [3, 5, 10, 20, 30], key='timed_training_num_riders_select')
+        selected_rider = st.selectbox("Select a *primary* rider to compare", df["Name"].unique(), index=0, key='timed_training_primary_rider_select')
 
     with col2:
-        comparison_type = st.selectbox("Select comparison type", ["Sector Times", "Split Times"])
-        second_rider = st.selectbox("Select a *second* rider to compare", df["Name"].unique(), index=1)
+        comparison_type = st.selectbox("Select comparison type", ["Sector Times", "Split Times"], key='timed_training_comparison_type_select')
+        second_rider = st.selectbox("Select a *second* rider to compare", df["Name"].unique(), index=1, key='timed_training_second_rider_select')
 
     df['Orig_Split_5_Time'] = df['Orig_Split_5_Time'].apply(convert_to_seconds)
     df['Best_Run'] = df.groupby('Name')['Orig_Split_5_Time'].transform('min')
@@ -153,4 +154,4 @@ def show_time_trials():
 
     plot_results(df_hypothetical_best, selected_rider, second_rider, n, comparison_type, index_location)
 
-show_time_trials()
+show_timed_training()

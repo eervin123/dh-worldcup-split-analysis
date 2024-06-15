@@ -2,9 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objs as go
 
+
 def show_event_results():
     # Filenames to choose from
-    filenames = ["data/fwil_dhi_me_results_qr.csv", "data/fwil_dhi_me_results_semi.csv", "data/fwil_dhi_me_results_f.csv", "data/leog_dhi_me_results_qr.csv", "data/leog_dhi_me_results_semi.csv"]
+    filenames = [
+        "data/fwil_dhi_me_results_qr.csv",
+        "data/fwil_dhi_me_results_semi.csv",
+        "data/fwil_dhi_me_results_f.csv",
+        "data/leog_dhi_me_results_qr.csv",
+        "data/leog_dhi_me_results_semi.csv",
+        "data/vdso_dhi_me_results_qr.csv",
+        "data/vdso_dhi_me_results_semi.csv",
+    ]
 
     # Mapping of user-friendly names to file paths
     file_mapping = {
@@ -13,8 +22,9 @@ def show_event_results():
         "Fort William Finals": "data/fwil_dhi_me_results_f.csv",
         "Leogang Qualifications": "data/leog_dhi_me_results_qr.csv",
         "Leogang Semi-Finals": "data/leog_dhi_me_results_semi.csv",
+        "Val di Sole Qualifications": "data/vdso_dhi_me_results_qr.csv",
+        "Val di Sole Semi-Finals": "data/vdso_dhi_me_results_semi.csv",
     }
-    
 
     st.title("Downhill Mountain Bike World Cup Event Results")
 
@@ -24,12 +34,12 @@ def show_event_results():
 
     # Function to clean column names for display
     def clean_column_name(col_name):
-        return col_name.replace('_', ' ').replace(' Time', '')
+        return col_name.replace("_", " ").replace(" Time", "")
 
     # Display basic information
     simple_df = df[["rank", "name", "team", "country", "final_time", "points"]]
     simple_df.set_index("rank", inplace=True)
-    st.write(simple_df.rename(columns=clean_column_name))
+    st.dataframe(simple_df.rename(columns=clean_column_name), hide_index=True)
 
     # Display split times and sectors
     st.write("Splits and Sector Ranks")
@@ -58,13 +68,14 @@ def show_event_results():
             "sector_5_rank",
         ]
     ].set_index("rank")
-    st.write(splits_df.rename(columns=clean_column_name))
-    
+    st.dataframe(splits_df.rename(columns=clean_column_name), hide_index=True)
+
     # Using columns to organize dropdowns
     col1, col2 = st.columns(2)
     with col1:
         n = st.selectbox(
-            "Select a number of riders to create an average for comparison", [3, 5, 10, 20, 30]
+            "Select a number of riders to create an average for comparison",
+            [3, 5, 10, 20, 30],
         )
         selected_rider = st.selectbox(
             "Select a *primary* rider to compare", df["name"].unique(), index=0
@@ -103,8 +114,10 @@ def show_event_results():
     if comparison_type == "Split Times":
         st.write("## Split Time Comparison")
         top_times_avg = df[["split_1", "split_2", "split_3", "split_4"]].head(n).mean()
-        
-        thirtieth_times = df[["split_1", "split_2", "split_3", "split_4"]].iloc[index_location]
+
+        thirtieth_times = df[["split_1", "split_2", "split_3", "split_4"]].iloc[
+            index_location
+        ]
         primary_rider_times = df[["split_1", "split_2", "split_3", "split_4"]].loc[
             df["name"].str.contains(selected_rider, case=False, na=False)
         ]
@@ -114,7 +127,9 @@ def show_event_results():
     else:
         st.write("## Sector Time Comparison")
         top_times_avg = (
-            df[["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]].head(n).mean()
+            df[["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]]
+            .head(n)
+            .mean()
         )
         thirtieth_times = df[
             ["sector_1", "sector_2", "sector_3", "sector_4", "sector_5"]
@@ -129,7 +144,9 @@ def show_event_results():
     # Calculate spread between top_times_avg and thirtieth_times and the selected rider times
     spread_top_thirtieth = top_times_avg - thirtieth_times
     if not primary_rider_times.empty:
-        spread_primary_rider_vs_top_rider_avg = top_times_avg - primary_rider_times.iloc[0]
+        spread_primary_rider_vs_top_rider_avg = (
+            top_times_avg - primary_rider_times.iloc[0]
+        )
         spread_secondary_rider_vs_top_rider_avg = (
             top_times_avg - secondary_rider_times.iloc[0]
         )
@@ -167,7 +184,9 @@ def show_event_results():
         )
 
         # Calculate the incremental spread for each split
-        spread_rider_vs_rider = primary_rider_times.iloc[0] - secondary_rider_times.iloc[0]
+        spread_rider_vs_rider = (
+            primary_rider_times.iloc[0] - secondary_rider_times.iloc[0]
+        )
 
         # Adding incremental spread as a line plot on secondary y-axis
         fig_rider_vs_rider.add_trace(
@@ -231,7 +250,9 @@ def show_event_results():
     # ================================================================================================
     # Average of top riders vs 30th place and selected riders
     st.write(f"## {comparison_type}")
-    st.write(f"#### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders")
+    st.write(
+        f"#### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders"
+    )
     fig = go.Figure()
     fig.add_trace(
         go.Bar(

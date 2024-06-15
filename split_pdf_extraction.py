@@ -185,9 +185,15 @@ def process_results(filename: str, table_start_line: int):
     print(f"Processed {filename} and saved to {csv_path}")
 
 # Process files
-process_results('data/leog_dhi_me_results_qr.pdf', 24)
+
 process_results('data/fwil_dhi_me_results_qr.pdf', 24)
 process_results('data/fwil_dhi_me_results_semi.pdf', 25)
 process_results('data/fwil_dhi_me_results_f.pdf', 24)
+process_results('data/biel_dhi_me_results_qr.pdf', 24)
+process_results('data/biel_dhi_me_results_semi.pdf', 25)
+process_results('data/biel_dhi_me_results_f.pdf', 24)
+process_results('data/leog_dhi_me_results_qr.pdf', 24)
+process_results('data/leog_dhi_me_results_semi.pdf', 25)
+process_results('data/leog_dhi_me_results_f.pdf', 24)
 process_results('data/vdso_dhi_me_results_qr.pdf', 24)
 process_results('data/vdso_dhi_me_results_semi.pdf', 25)

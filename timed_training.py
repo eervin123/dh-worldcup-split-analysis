@@ -4,17 +4,14 @@ from plot_helper import plot_results
 from columns import preferred_columns, timedelta_columns
 
 def show_timed_training():
-    # Filenames to choose from
     filenames = ["data/fwil_dhi_me_results_tt.csv", "data/leog_dhi_me_results_tt.csv", "data/biel_dhi_me_results_tt.csv", "data/vdso_dhi_me_results_tt.csv", "data/gets_dhi_me_results_tt.csv"]
 
-    # Mapping of user-friendly names to file paths
     file_mapping = {
         "Fort William Time Training": "data/fwil_dhi_me_results_tt.csv",
         "Leogang Time Training": "data/leog_dhi_me_results_tt.csv",
         "Biel Time Training": "data/biel_dhi_me_results_tt.csv",
         "Val di Sole Time Training": "data/vdso_dhi_me_results_tt.csv",
-        "Les Gets Time Training": "data/gets_dhi_me_results_tt.csv", 
-        
+        "Les Gets Time Training": "data/gets_dhi_me_results_tt.csv",
     }
 
     st.title("Downhill Mountain Bike World Cup Time Training Results")
@@ -23,7 +20,7 @@ def show_timed_training():
 
     def clean_column_name(col_name):
         return col_name.replace('Orig_', '').replace('_', ' ').replace('Clean_', '').replace('Time', '').title().strip()
-    
+
     def convert_to_seconds(time_str):
         try:
             if pd.isna(time_str):
@@ -141,7 +138,6 @@ def show_timed_training():
                     [col for col in preferred_columns if col not in ['Number', 'Name', 'Speed', 'Speed_Rank', 'Perfect_Run_Rank']]
     df_hypothetical_best = df_hypothetical_best[columns_order]
 
-    # Convert all relevant time columns to human-readable format
     time_columns = [col for col in df_hypothetical_best.columns if 'Time' in col or 'Split' in col or 'Sector' in col]
     for col in time_columns:
         df_hypothetical_best[col] = df_hypothetical_best[col].apply(seconds_to_human_readable)

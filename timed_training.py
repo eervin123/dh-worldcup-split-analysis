@@ -5,7 +5,7 @@ from columns import preferred_columns, timedelta_columns
 
 def show_timed_training():
     # Filenames to choose from
-    filenames = ["data/fwil_dhi_me_results_tt.csv", "data/leog_dhi_me_results_tt.csv", "data/biel_dhi_me_results_tt.csv", "data/vdso_dhi_me_results_tt.csv"]
+    filenames = ["data/fwil_dhi_me_results_tt.csv", "data/leog_dhi_me_results_tt.csv", "data/biel_dhi_me_results_tt.csv", "data/vdso_dhi_me_results_tt.csv", "data/gets_dhi_me_results_tt.csv"]
 
     # Mapping of user-friendly names to file paths
     file_mapping = {
@@ -13,6 +13,8 @@ def show_timed_training():
         "Leogang Time Training": "data/leog_dhi_me_results_tt.csv",
         "Biel Time Training": "data/biel_dhi_me_results_tt.csv",
         "Val di Sole Time Training": "data/vdso_dhi_me_results_tt.csv",
+        "Les Gets Time Training": "data/gets_dhi_me_results_tt.csv", 
+        
     }
 
     st.title("Downhill Mountain Bike World Cup Time Training Results")

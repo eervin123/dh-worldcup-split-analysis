@@ -1,5 +1,10 @@
+# Filename: plot_helper.py
+# Description: This file contains the plot_results function that generates the plots for the timed training data. It is imported in both timed_training.py and event_results.py.
+
+
 import plotly.graph_objs as go
 import streamlit as st
+from utils import seconds_to_human_readable
 
 def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type, index_location):
     # Create the plots

@@ -9,13 +9,6 @@ from utils import convert_to_seconds, seconds_to_human_readable, clean_column_na
 
 
 def show_timed_training():
-    filenames = [
-        "data/fwil_dhi_me_results_tt.csv",
-        "data/leog_dhi_me_results_tt.csv",
-        "data/biel_dhi_me_results_tt.csv",
-        "data/vdso_dhi_me_results_tt.csv",
-        "data/gets_dhi_me_results_tt.csv",
-    ]
 
     file_mapping = {
         "Fort William Time Training": "data/fwil_dhi_me_results_tt.csv",
@@ -23,20 +16,22 @@ def show_timed_training():
         "Biel Time Training": "data/biel_dhi_me_results_tt.csv",
         "Val di Sole Time Training": "data/vdso_dhi_me_results_tt.csv",
         "Les Gets Time Training": "data/gets_dhi_me_results_tt.csv",
+        "Mont-Sainte-Anne Time Training": "data/mtsa_dhi_me_results_tt.csv",
     }
 
     st.title("Downhill Mountain Bike World Cup Time Training Results")
     file_choice = st.selectbox(
         "Select event results:",
         list(file_mapping.keys()),
-        key="timed_training_file_select",
+        key="timed_training_file_select_unique",
     )
     df = pd.read_csv(file_mapping[file_choice])
 
 
+    #  Modify DataFrame using .loc to avoid SettingWithCopyWarning
     simple_df = df[
         ["Number", "Name", "Run", "Speed", "Speed_Rank", "Orig_Split_5_Time"]
-    ]
+    ].copy()  # Use .copy() to work on a copy of the DataFrame
     simple_df["Orig_Split_5_Time"] = simple_df["Orig_Split_5_Time"].apply(
         convert_to_seconds
     )
@@ -64,26 +59,26 @@ def show_timed_training():
         n = st.selectbox(
             "Select a number of riders to create an average for comparison",
             [3, 5, 10, 20, 30],
-            key="timed_training_num_riders_select",
+            key="timed_training_num_riders_select_unique",
         )
         selected_rider = st.selectbox(
             "Select a *primary* rider to compare",
             df["Name"].unique(),
             index=0,
-            key="timed_training_primary_rider_select",
+            key="timed_training_primary_rider_select_unique",
         )
 
     with col2:
         comparison_type = st.selectbox(
             "Select comparison type",
             ["Sector Times", "Split Times"],
-            key="timed_training_comparison_type_select",
+            key="timed_training_comparison_type_select_unique",
         )
         second_rider = st.selectbox(
             "Select a *second* rider to compare",
             df["Name"].unique(),
             index=1,
-            key="timed_training_second_rider_select",
+            key="timed_training_second_rider_select_unique",
         )
 
     df["Orig_Split_5_Time"] = df["Orig_Split_5_Time"].apply(convert_to_seconds)

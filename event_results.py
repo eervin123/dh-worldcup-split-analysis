@@ -44,11 +44,11 @@ def show_event_results():
 
     simple_df = df[event_columns]
     simple_df.set_index("rank", inplace=True)
-    st.dataframe(simple_df.rename(columns=clean_column_name), hide_index=True)
+    st.dataframe(simple_df.rename(columns=clean_column_name), hide_index=False)
 
     st.write("Splits and Sector Ranks")
     splits_df = df[split_sector_display_columns].set_index("rank")
-    st.dataframe(splits_df.rename(columns=clean_column_name), hide_index=True)
+    st.dataframe(splits_df.rename(columns=clean_column_name), hide_index=False)
 
     col1, col2 = st.columns(2)
     with col1:

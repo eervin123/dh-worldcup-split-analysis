@@ -2,7 +2,7 @@ import pandas as pd
 import re
 import fitz  # PyMuPDF
 
-filename = 'data/gets_dhi_me_results_tt.pdf'
+filename = 'data/mtsa_dhi_me_results_tt.pdf'
 
 def parse_timed_training_data_final(lines):
     data = []

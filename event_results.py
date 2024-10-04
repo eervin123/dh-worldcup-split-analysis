@@ -33,6 +33,7 @@ def show_event_results():
         "Val di Sole Finals": "data/vdso_dhi_me_results_f.csv",
         "Les Gets Qualifications": "data/gets_dhi_me_results_qr.csv",
         "Les Gets Semi-Finals": "data/gets_dhi_me_results_semi.csv",
+        "Mont-Sainte-Anne Qualifications": "data/mtsa_dhi_me_results_qr.csv",
     }
 
     st.title("Downhill Mountain Bike World Cup Event Results")

@@ -200,3 +200,4 @@ process_results('data/vdso_dhi_me_results_semi.pdf', 25)
 process_results('data/vdso_dhi_me_results_f.pdf', 24)
 process_results('data/gets_dhi_me_results_qr.pdf', 24)
 process_results('data/gets_dhi_me_results_semi.pdf', 25)
+process_results('data/mtsa_dhi_me_results_qr.pdf', 26) # Note this file has a different table start line

@@ -202,6 +202,12 @@ df_runs["Time"] = df_runs["Time"].fillna(
     float("inf")
 )  # Replace NaNs with infinity for ranking
 
+# Rank times in ascending order (lower times are better)
+df_runs["Time_Rank"] = df_runs["Time"].rank(method="min", na_option="bottom")
+df_runs["Time_Rank"] = (
+    df_runs["Time_Rank"].fillna(df_runs["Time_Rank"].max() + 1).astype(int)
+)
+
 # Calculate cumulative times from each split to the finish
 for i in range(4):  # Only up to Split 4
     df_runs[f"Cumulative_from_Split_{i+1}_Time"] = (

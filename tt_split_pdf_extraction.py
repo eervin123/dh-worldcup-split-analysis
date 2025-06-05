@@ -247,6 +247,8 @@ output_columns = [
     "Time_Rank",
     "Speed",
     "Speed_Rank",
+    "Splits",
+    "Sector_Times",
     "Orig_Split_1_Time",
     "Orig_Split_2_Time",
     "Orig_Split_3_Time",
@@ -281,6 +283,37 @@ output_columns = [
     "Cumulative_from_Split_3_Rank",
     "Cumulative_from_Split_4_Rank",
 ]
+
+
+# Convert times back to M:SS.mmm format for display
+def format_time(time_value):
+    if pd.isna(time_value):
+        return None
+    if isinstance(time_value, str):
+        return time_value  # Already in correct format
+    minutes = int(time_value // 60)
+    remaining_seconds = time_value % 60
+    return f"{minutes}:{remaining_seconds:06.3f}"
+
+
+# Format the time column
+df_runs["Time"] = df_runs["Time"].apply(format_time)
+
+# Format split times
+for i in range(5):
+    df_runs[f"Orig_Split_{i+1}_Time"] = df_runs[f"Orig_Split_{i+1}_Time"].apply(
+        format_time
+    )
+
+# Format sector times (keep as seconds)
+df_runs["Sector_Times"] = df_runs["Sector_Times"].apply(
+    lambda x: [f"{t:.3f}" if t is not None else None for t in x]
+)
+
+# Format splits (keep as M:SS.mmm)
+df_runs["Splits"] = df_runs["Splits"].apply(
+    lambda x: [format_time(convert_to_seconds(t)) if t is not None else None for t in x]
+)
 
 df_output = df_runs[output_columns].copy()
 

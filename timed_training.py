@@ -13,6 +13,7 @@ def show_timed_training():
     file_mapping = {
         "Fort William Time Training": "data/fwil_dhi_me_results_tt.csv",
         "Leogang Time Training": "data/leog_dhi_me_results_tt.csv",
+        "Leogang Time Training 2025": "data/leog_2025_dhi_me_results_tt.csv",
         "Biel Time Training": "data/biel_dhi_me_results_tt.csv",
         "Val di Sole Time Training": "data/vdso_dhi_me_results_tt.csv",
         "Les Gets Time Training": "data/gets_dhi_me_results_tt.csv",

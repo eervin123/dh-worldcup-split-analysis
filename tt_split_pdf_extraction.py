@@ -95,12 +95,14 @@ for _, row in df_timed_training_final.iterrows():
     for run in range(1, 6):  # Changed to 6 runs as per PDF format
         run_splits = row.get(f"Run{run}_Splits", [])
         if run_splits:
+            # Get the last split time as the final time
+            final_time = run_splits[-1] if run_splits else None
             run_entry = {
                 "Number": row["Number"],
                 "Name": row["Name"],
                 "Run": run,
                 "Splits": run_splits if isinstance(run_splits, list) else [],
-                "Time": row.get(f"Run{run}_Time", None),
+                "Time": final_time,
             }
             run_data.append(run_entry)
             print(f"Added run {run} for {row['Name']} with {len(run_splits)} splits")
@@ -195,15 +197,10 @@ for i in range(5):
     )
 
 # Convert time to float for ranking and handle NaNs
-df_runs["Time"] = (
-    df_runs["Time"].astype(float).fillna(0)
-)  # Replace NaNs with a very small number (0)
-
-# Rank times in ascending order (lower times are better)
-df_runs["Time_Rank"] = df_runs["Time"].rank(method="min", na_option="bottom")
-df_runs["Time_Rank"] = (
-    df_runs["Time_Rank"].fillna(df_runs["Time_Rank"].max() + 1).astype(int)
-)
+df_runs["Time"] = df_runs["Time"].apply(convert_to_seconds)  # Convert time to seconds
+df_runs["Time"] = df_runs["Time"].fillna(
+    float("inf")
+)  # Replace NaNs with infinity for ranking
 
 # Calculate cumulative times from each split to the finish
 for i in range(4):  # Only up to Split 4
@@ -225,6 +222,9 @@ COURSE_LENGTH = 2.5  # in kilometers
 df_runs["Speed"] = (COURSE_LENGTH / (df_runs["Time"] / 3600)).round(3)  # Speed in km/h
 
 # Rank speeds in descending order (higher speeds are better)
+# First replace inf values with NaN
+df_runs["Speed"] = df_runs["Speed"].replace([float("inf"), float("-inf")], float("nan"))
+# Then rank, handling NaN values appropriately
 df_runs["Speed_Rank"] = df_runs["Speed"].rank(
     method="min", ascending=False, na_option="bottom"
 )

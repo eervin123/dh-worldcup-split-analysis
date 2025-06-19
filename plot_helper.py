@@ -6,39 +6,106 @@ import plotly.graph_objs as go
 import streamlit as st
 from utils import seconds_to_human_readable
 
-def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type, index_location):
+
+def plot_results(
+    df_best_runs, selected_rider, second_rider, n, comparison_type, index_location
+):
     # Create the plots
     if comparison_type == "Split Times":
         st.write("#### Split Time Comparison")
-        top_times_avg = df_best_runs[["Orig_Split_1_Time", "Orig_Split_2_Time", "Orig_Split_3_Time", "Orig_Split_4_Time", "Orig_Split_5_Time"]].head(n).mean()
+        top_times_avg = (
+            df_best_runs[
+                [
+                    "Orig_Split_1_Time",
+                    "Orig_Split_2_Time",
+                    "Orig_Split_3_Time",
+                    "Orig_Split_4_Time",
+                    "Orig_Split_5_Time",
+                ]
+            ]
+            .head(n)
+            .mean()
+        )
 
-        thirtieth_times = df_best_runs[["Orig_Split_1_Time", "Orig_Split_2_Time", "Orig_Split_3_Time", "Orig_Split_4_Time", "Orig_Split_5_Time"]].iloc[index_location]
-        primary_rider_times = df_best_runs[["Orig_Split_1_Time", "Orig_Split_2_Time", "Orig_Split_3_Time", "Orig_Split_4_Time", "Orig_Split_5_Time"]].loc[
-            df_best_runs["Name"].str.contains(selected_rider, case=False, na=False)
-        ]
-        secondary_rider_times = df_best_runs[["Orig_Split_1_Time", "Orig_Split_2_Time", "Orig_Split_3_Time", "Orig_Split_4_Time", "Orig_Split_5_Time"]].loc[
-            df_best_runs["Name"].str.contains(second_rider, case=False, na=False)
-        ]
-    else:
-        st.write("#### Sector Time Comparison")
-        top_times_avg = df_best_runs[
-            ["Sector_1_Time", "Sector_2_Time", "Sector_3_Time", "Sector_4_Time", "Sector_5_Time"]
-        ].head(n).mean()
         thirtieth_times = df_best_runs[
-            ["Sector_1_Time", "Sector_2_Time", "Sector_3_Time", "Sector_4_Time", "Sector_5_Time"]
+            [
+                "Orig_Split_1_Time",
+                "Orig_Split_2_Time",
+                "Orig_Split_3_Time",
+                "Orig_Split_4_Time",
+                "Orig_Split_5_Time",
+            ]
         ].iloc[index_location]
         primary_rider_times = df_best_runs[
-            ["Sector_1_Time", "Sector_2_Time", "Sector_3_Time", "Sector_4_Time", "Sector_5_Time"]
+            [
+                "Orig_Split_1_Time",
+                "Orig_Split_2_Time",
+                "Orig_Split_3_Time",
+                "Orig_Split_4_Time",
+                "Orig_Split_5_Time",
+            ]
         ].loc[df_best_runs["Name"].str.contains(selected_rider, case=False, na=False)]
         secondary_rider_times = df_best_runs[
-            ["Sector_1_Time", "Sector_2_Time", "Sector_3_Time", "Sector_4_Time", "Sector_5_Time"]
+            [
+                "Orig_Split_1_Time",
+                "Orig_Split_2_Time",
+                "Orig_Split_3_Time",
+                "Orig_Split_4_Time",
+                "Orig_Split_5_Time",
+            ]
+        ].loc[df_best_runs["Name"].str.contains(second_rider, case=False, na=False)]
+    else:
+        st.write("#### Sector Time Comparison")
+        top_times_avg = (
+            df_best_runs[
+                [
+                    "Sector_1_Time",
+                    "Sector_2_Time",
+                    "Sector_3_Time",
+                    "Sector_4_Time",
+                    "Sector_5_Time",
+                ]
+            ]
+            .head(n)
+            .mean()
+        )
+        thirtieth_times = df_best_runs[
+            [
+                "Sector_1_Time",
+                "Sector_2_Time",
+                "Sector_3_Time",
+                "Sector_4_Time",
+                "Sector_5_Time",
+            ]
+        ].iloc[index_location]
+        primary_rider_times = df_best_runs[
+            [
+                "Sector_1_Time",
+                "Sector_2_Time",
+                "Sector_3_Time",
+                "Sector_4_Time",
+                "Sector_5_Time",
+            ]
+        ].loc[df_best_runs["Name"].str.contains(selected_rider, case=False, na=False)]
+        secondary_rider_times = df_best_runs[
+            [
+                "Sector_1_Time",
+                "Sector_2_Time",
+                "Sector_3_Time",
+                "Sector_4_Time",
+                "Sector_5_Time",
+            ]
         ].loc[df_best_runs["Name"].str.contains(second_rider, case=False, na=False)]
 
     # Calculate spread between top_times_avg and thirtieth_times and the selected rider times
     spread_top_thirtieth = top_times_avg - thirtieth_times
     if not primary_rider_times.empty:
-        spread_primary_rider_vs_top_rider_avg = top_times_avg - primary_rider_times.iloc[0]
-        spread_secondary_rider_vs_top_rider_avg = top_times_avg - secondary_rider_times.iloc[0]
+        spread_primary_rider_vs_top_rider_avg = (
+            top_times_avg - primary_rider_times.iloc[0]
+        )
+        spread_secondary_rider_vs_top_rider_avg = (
+            top_times_avg - secondary_rider_times.iloc[0]
+        )
 
     # ======================Rider vs Rider Comparison===============================================
     # Rider vs Rider Comparison with Incremental and Cumulative Spread on Secondary Axis
@@ -73,7 +140,9 @@ def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type,
         )
 
         # Calculate the incremental spread for each split
-        spread_rider_vs_rider = primary_rider_times.iloc[0] - secondary_rider_times.iloc[0]
+        spread_rider_vs_rider = (
+            primary_rider_times.iloc[0] - secondary_rider_times.iloc[0]
+        )
 
         # Adding incremental spread as a line plot on secondary y-axis
         fig_rider_vs_rider.add_trace(
@@ -108,14 +177,14 @@ def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type,
             xaxis_title="Time Split",
             yaxis=dict(
                 title="Time (seconds)",
-                titlefont=dict(color="blue"),
+                title_font=dict(color="blue"),
                 tickfont=dict(color="blue"),
             ),
             yaxis2=dict(
                 title="Spread (seconds)",
                 overlaying="y",
                 side="right",
-                titlefont=dict(color="purple"),
+                title_font=dict(color="purple"),
                 tickfont=dict(color="purple"),
             ),
             shapes=[  # Add shapes
@@ -137,7 +206,9 @@ def plot_results(df_best_runs, selected_rider, second_rider, n, comparison_type,
     # ================================================================================================
     # Average of top riders vs 30th place and selected riders
     st.write(f"#### {comparison_type}")
-    st.write(f"##### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders")
+    st.write(
+        f"##### Compare Top {n} avg vs {index_location+1}th Place vs Selected Riders"
+    )
     fig = go.Figure()
     fig.add_trace(
         go.Bar(

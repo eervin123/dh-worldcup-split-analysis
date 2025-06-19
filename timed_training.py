@@ -11,9 +11,10 @@ from utils import convert_to_seconds, seconds_to_human_readable, clean_column_na
 def show_timed_training():
 
     file_mapping = {
+        "2025 Leogang Time Training": "data/leog_2025_dhi_me_results_tt.csv",
+        "2025 Val di Sole Time Training": "data/vdso_2025_dhi_me_results_tt.csv",
         "Fort William Time Training": "data/fwil_dhi_me_results_tt.csv",
         "Leogang Time Training": "data/leog_dhi_me_results_tt.csv",
-        "Leogang Time Training 2025": "data/leog_2025_dhi_me_results_tt.csv",
         "Biel Time Training": "data/biel_dhi_me_results_tt.csv",
         "Val di Sole Time Training": "data/vdso_dhi_me_results_tt.csv",
         "Les Gets Time Training": "data/gets_dhi_me_results_tt.csv",
@@ -28,6 +29,38 @@ def show_timed_training():
     )
     df = pd.read_csv(file_mapping[file_choice])
 
+    # Calculate and display information about total runs
+    total_runs = len(df)
+    unique_riders = df["Name"].nunique()
+    avg_runs_per_rider = total_runs / unique_riders if unique_riders > 0 else 0
+
+    st.info(
+        f"""
+    **Timed Training Context:** This dataset contains **{total_runs} total runs** from **{unique_riders} riders** 
+    (average of {avg_runs_per_rider:.1f} runs per rider). 
+    
+    The split and sector ranks shown below are calculated across all runs from all riders, 
+    not just per rider. This means a rank of 1 represents the fastest time across all attempts.
+    """
+    )
+
+    # Handle different column naming conventions
+    # Check if we have Clean_Split_X_Rank columns (Val di Sole format) or Split_X_Rank columns
+    has_clean_splits = any(
+        col.startswith("Clean_Split_") and col.endswith("_Rank") for col in df.columns
+    )
+
+    if has_clean_splits:
+        # Create a mapping for Val di Sole format
+        column_mapping = {
+            "Clean_Split_1_Rank": "Split_1_Rank",
+            "Clean_Split_2_Rank": "Split_2_Rank",
+            "Clean_Split_3_Rank": "Split_3_Rank",
+            "Clean_Split_4_Rank": "Split_4_Rank",
+            "Clean_Split_5_Rank": "Split_5_Rank",
+        }
+        # Rename columns to match expected format
+        df = df.rename(columns=column_mapping)
 
     #  Modify DataFrame using .loc to avoid SettingWithCopyWarning
     simple_df = df[
@@ -52,7 +85,10 @@ def show_timed_training():
         simple_df.rename(columns={"Orig_Split_5_Time": "Final Time"}), hide_index=True
     )
     st.write("Splits and Sector Ranks")
-    splits_df = df[preferred_columns].rename(columns=clean_column_name)
+
+    # Filter preferred_columns to only include columns that exist in the DataFrame
+    available_columns = [col for col in preferred_columns if col in df.columns]
+    splits_df = df[available_columns].rename(columns=clean_column_name)
     st.dataframe(splits_df, hide_index=True)
 
     col1, col2 = st.columns(2)
@@ -101,8 +137,24 @@ def show_timed_training():
         df_best_runs[new_columns].rename(columns=clean_column_name), hide_index=True
     )
 
-    for column in timedelta_columns:
-        df_best_runs[column] = pd.to_timedelta(df_best_runs[column], errors="coerce")
+    # Ensure all split and sector time columns are timedelta before plotting
+    time_columns = [
+        "Orig_Split_1_Time",
+        "Orig_Split_2_Time",
+        "Orig_Split_3_Time",
+        "Orig_Split_4_Time",
+        "Orig_Split_5_Time",
+        "Sector_1_Time",
+        "Sector_2_Time",
+        "Sector_3_Time",
+        "Sector_4_Time",
+        "Sector_5_Time",
+    ]
+    for column in time_columns:
+        if column in df_best_runs.columns:
+            df_best_runs[column] = pd.to_timedelta(
+                df_best_runs[column], errors="coerce"
+            )
 
     if len(df_best_runs) < 30:
         index_location = len(df_best_runs) - 1
@@ -204,6 +256,13 @@ def show_timed_training():
             seconds_to_human_readable
         )
 
+    # Ensure all split and sector time columns are timedelta before plotting hypothetical best
+    for column in time_columns:
+        if column in df_hypothetical_best.columns:
+            df_hypothetical_best[column] = pd.to_timedelta(
+                df_hypothetical_best[column], errors="coerce"
+            )
+
     st.title("Hypothetical Perfect Runs Analysis")
     st.write(
         "The following analysis is based on the best sector times for each rider out of their three runs to compile a single best hypothetical run."
@@ -212,11 +271,6 @@ def show_timed_training():
     st.dataframe(
         df_hypothetical_best.rename(columns=clean_column_name), hide_index=True
     )
-
-    for column in timedelta_columns:
-        df_hypothetical_best[column] = pd.to_timedelta(
-            df_hypothetical_best[column], errors="coerce"
-        )
 
     plot_results(
         df_hypothetical_best,

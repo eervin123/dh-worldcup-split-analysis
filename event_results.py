@@ -27,6 +27,8 @@ def load_data(file_path):
 
 def show_event_results():
     file_mapping = {
+        "Val di Sole 2025 Q1 Qualifications": "data/vdso_2025_dhi_me_results_q1.csv",
+        "Val di Sole 2025 Q2 Qualifications": "data/vdso_2025_dhi_me_results_q2.csv",
         "Fort William Qualifications": "data/fwil_dhi_me_results_qr.csv",
         "Fort William Semi-Finals": "data/fwil_dhi_me_results_semi.csv",
         "Fort William Finals": "data/fwil_dhi_me_results_f.csv",

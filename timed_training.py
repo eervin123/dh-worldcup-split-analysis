@@ -162,7 +162,13 @@ def show_timed_training():
         index_location = 29
 
     plot_results(
-        df_best_runs, selected_rider, second_rider, n, comparison_type, index_location
+        df_best_runs,
+        selected_rider,
+        second_rider,
+        n,
+        comparison_type,
+        index_location,
+        "best_runs",
     )
 
     best_sectors = (
@@ -279,6 +285,7 @@ def show_timed_training():
         n,
         comparison_type,
         index_location,
+        "hypothetical_best",
     )
 
 

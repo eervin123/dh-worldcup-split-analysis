@@ -3,6 +3,7 @@ from typing import List, Dict, Union
 import pandas as pd
 from datetime import datetime, timedelta
 import re
+import sys
 
 
 def extract_time_and_rank(data_string: str) -> (str, str):
@@ -68,7 +69,7 @@ def is_invalid_entry(entry):
 
 
 def extract_rider_info_all_pages_2025(
-    filename: str, table_start_line: int = 25
+    filename: str, table_start_line: int = 24
 ) -> List[Dict[str, Union[str, List[str]]]]:
     """Extract rider information from all pages with improved 2025 parsing."""
     doc = fitz.open(filename)
@@ -322,6 +323,10 @@ def process_results_2025(filename: str, table_start_line: int):
     columns_to_drop = ["split_times", "split_time_ranks", "sector_times"]
     df.drop(columns=[col for col in columns_to_drop if col in df.columns], inplace=True)
 
+    # Sort by rank to ensure correct order
+    df["rank"] = pd.to_numeric(df["rank"], errors="coerce")
+    df = df.sort_values("rank").reset_index(drop=True)
+
     # Generate output filename
     file_prefix = filename.split("/")[-1].split(".")[0]
     csv_path = f"data/{file_prefix}.csv"
@@ -335,5 +340,10 @@ def process_results_2025(filename: str, table_start_line: int):
 
 # Process 2025 files
 if __name__ == "__main__":
-    # Process the 2025 Q1 file
-    process_results_2025("data/leog_2025_dhi_me_results_q1.pdf", 25)
+    if len(sys.argv) > 1:
+        # Use the filename provided as command line argument
+        filename = sys.argv[1]
+        process_results_2025(filename, 24)
+    else:
+        # Default to the 2025 Q1 file if no argument provided
+        process_results_2025("data/leog_2025_dhi_me_results_q1.pdf", 24)

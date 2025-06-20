@@ -3,12 +3,13 @@
 
 import pandas as pd
 
+
 def seconds_to_human_readable(seconds):
     if pd.isna(seconds):
         return "N/A"
-    minutes = int(seconds // 60)
-    seconds = seconds % 60
-    return f"{minutes}:{seconds:05.2f}"
+    # Return format that pd.to_timedelta can parse: "46.52s"
+    return f"{seconds:.2f}s"
+
 
 def clean_column_name(col_name):
     return (
@@ -19,6 +20,7 @@ def clean_column_name(col_name):
         .title()
         .strip()
     )
+
 
 def convert_to_seconds(time_str):
     try:

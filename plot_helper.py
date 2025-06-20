@@ -8,7 +8,13 @@ from utils import seconds_to_human_readable
 
 
 def plot_results(
-    df_best_runs, selected_rider, second_rider, n, comparison_type, index_location
+    df_best_runs,
+    selected_rider,
+    second_rider,
+    n,
+    comparison_type,
+    index_location,
+    plot_id="",
 ):
     # Create the plots
     if comparison_type == "Split Times":
@@ -36,6 +42,15 @@ def plot_results(
                 "Orig_Split_5_Time",
             ]
         ].iloc[index_location]
+
+        # More robust rider selection
+        primary_rider_mask = df_best_runs["Name"].str.contains(
+            selected_rider, case=False, na=False, regex=False
+        )
+        secondary_rider_mask = df_best_runs["Name"].str.contains(
+            second_rider, case=False, na=False, regex=False
+        )
+
         primary_rider_times = df_best_runs[
             [
                 "Orig_Split_1_Time",
@@ -44,7 +59,7 @@ def plot_results(
                 "Orig_Split_4_Time",
                 "Orig_Split_5_Time",
             ]
-        ].loc[df_best_runs["Name"].str.contains(selected_rider, case=False, na=False)]
+        ].loc[primary_rider_mask]
         secondary_rider_times = df_best_runs[
             [
                 "Orig_Split_1_Time",
@@ -53,7 +68,7 @@ def plot_results(
                 "Orig_Split_4_Time",
                 "Orig_Split_5_Time",
             ]
-        ].loc[df_best_runs["Name"].str.contains(second_rider, case=False, na=False)]
+        ].loc[secondary_rider_mask]
     else:
         st.write("#### Sector Time Comparison")
         top_times_avg = (
@@ -78,6 +93,15 @@ def plot_results(
                 "Sector_5_Time",
             ]
         ].iloc[index_location]
+
+        # More robust rider selection
+        primary_rider_mask = df_best_runs["Name"].str.contains(
+            selected_rider, case=False, na=False, regex=False
+        )
+        secondary_rider_mask = df_best_runs["Name"].str.contains(
+            second_rider, case=False, na=False, regex=False
+        )
+
         primary_rider_times = df_best_runs[
             [
                 "Sector_1_Time",
@@ -86,7 +110,7 @@ def plot_results(
                 "Sector_4_Time",
                 "Sector_5_Time",
             ]
-        ].loc[df_best_runs["Name"].str.contains(selected_rider, case=False, na=False)]
+        ].loc[primary_rider_mask]
         secondary_rider_times = df_best_runs[
             [
                 "Sector_1_Time",
@@ -95,7 +119,7 @@ def plot_results(
                 "Sector_4_Time",
                 "Sector_5_Time",
             ]
-        ].loc[df_best_runs["Name"].str.contains(second_rider, case=False, na=False)]
+        ].loc[secondary_rider_mask]
 
     # Calculate spread between top_times_avg and thirtieth_times and the selected rider times
     spread_top_thirtieth = top_times_avg - thirtieth_times
